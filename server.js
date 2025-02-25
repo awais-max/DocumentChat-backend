@@ -268,6 +268,30 @@ app.post("/upload", upload.single("document"), async (req, res) => {
     res.status(400).json({ success: false, error: error.message });
   }
 });
+// Add this to your server.js file
+app.get("/check-readiness", async (req, res) => {
+  try {
+    const { sessionId } = req.query;
+    if (!sessionId) throw new Error("Session ID is required");
+
+    const namespace = `user-${sessionId}`;
+    const stats = await pineconeIndex.namespace(namespace).describeIndexStats();
+
+    // Check if vectors exist in the namespace
+    if (
+      stats.namespaces &&
+      stats.namespaces[namespace] &&
+      stats.namespaces[namespace].vectorCount > 0
+    ) {
+      res.json({ ready: true });
+    } else {
+      res.json({ ready: false });
+    }
+  } catch (error) {
+    console.error("Readiness check failed:", error);
+    res.status(500).json({ error: "Failed to check readiness" });
+  }
+});
 
 app.post("/chat", express.json(), async (req, res) => {
   try {
